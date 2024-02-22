@@ -165,7 +165,7 @@ function createWindow () {
       nodeIntegrationInSubFrames: true, // 是否允许在子页面(iframe)或子窗口(child window)中集成Node.js
       // 开启 remote 模块
       // enableBlinkFeatures:true,
-      preload: path.join(__dirname, '../preload.js')
+      preload: path.join(__dirname, './preload.js')
     }
   })
 

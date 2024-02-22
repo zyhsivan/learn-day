@@ -19,7 +19,7 @@ import {FieldDataNode} from "rc-tree/lib/interface"
 import {generateUUID2,MenuItem,getItem} from "../utils";
 import MyExcalidraw from "./MyExcalidraw";
 import {nanoid} from "nanoid";
-import {menu} from "@excalidraw/excalidraw/types/components/icons";
+// import {menu} from "@excalidraw/excalidraw/types/components/icons";
 
 const {DirectoryTree} = Tree;
 

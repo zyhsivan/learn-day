@@ -460,7 +460,7 @@ export default function App() {
     for(var i=0;i<arrayItems.length;i++){
       var item = arrayItems[i];
       arrayHtmls.push(
-        <div data-id={item.id} onClick={(e)=>onElementClickEvent(e)}><img src={item.imageName}/><span>{item.title}</span></div>
+        <div key={item.id} data-id={item.id} onClick={(e)=>onElementClickEvent(e)}><img src={item.imageName}/><span>{item.title}</span></div>
       )
     }
 
@@ -481,6 +481,7 @@ export default function App() {
       if(p.id == 'element'){
         arrayNew.push(
           <Popover
+            key={p.id}
             style={{margin:'0px',padding:'0px'}}
             content={renderToolElement()}
             title=""

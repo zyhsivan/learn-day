@@ -1,4 +1,4 @@
-import { ResolvablePromise } from "@excalidraw/excalidraw/types/utils";
+import { ResolvablePromise } from "@excalidraw/excalidraw/utils";
 import { unstable_batchedUpdates } from "react-dom";
 import React from "react";
 import { MenuProps } from "antd";
