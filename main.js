@@ -171,6 +171,11 @@ function createWindow () {
 
   // and load the index.html of the app.
   if (process.env.MODE_ENV == 'development'){
+    const { session } = require("electron");
+    const path = require("path");
+    session.defaultSession.loadExtension(
+      path.resolve(__dirname, "./devtool/5.0.0_0")
+    );
     mainWindow.loadURL("http://localhost:3000");
   }else{
     //打包使用
