@@ -1,0 +1,3 @@
+actions/actionProperties 条目选中的弹窗，颜色==的配置..
+constants   初始属性配置.
+components layerui  主界面。。
