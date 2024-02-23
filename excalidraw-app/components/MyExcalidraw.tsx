@@ -332,7 +332,6 @@ export default class MyExcalidraw extends React.Component<AppProps, AppState>{
                     viewModeEnabled={this.state.isReadOnlyStatus}
                     excalidrawAPI={(api => excalidrawAPI=api)}
                     onChange={(elements, state) => {
-                         console.info("State : ", state);
                          if(this.props.parentOnCanvasChange != null){
                            this.props.parentOnCanvasChange(elements, state);
                          }

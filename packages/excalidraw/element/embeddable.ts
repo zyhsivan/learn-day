@@ -45,27 +45,31 @@ const RE_GENERIC_EMBED =
 const RE_GIPHY =
   /giphy.com\/(?:clips|embed|gifs)\/[a-zA-Z0-9]*?-?([a-zA-Z0-9]+)(?:[^a-zA-Z0-9]|$)/;
 
+const RE_GOOGLE_DRIVE = /\/file\/d\/([-"\w]+)/;
+
 const ALLOWED_DOMAINS = new Set([
-  "youtube.com",
-  "youtu.be",
-  "vimeo.com",
-  "player.vimeo.com",
-  "figma.com",
-  "link.excalidraw.com",
-  "gist.github.com",
-  "twitter.com",
-  "x.com",
-  "*.simplepdf.eu",
-  "stackblitz.com",
-  "val.town",
-  "giphy.com",
-  "dddice.com",
+  "**",
+  // "youtube.com",
+  // "youtu.be",
+  // "vimeo.com",
+  // "player.vimeo.com",
+  // "figma.com",
+  // "link.excalidraw.com",
+  // "gist.github.com",
+  // "twitter.com",
+  // "x.com",
+  // "*.simplepdf.eu",
+  // "stackblitz.com",
+  // "val.town",
+  // "giphy.com",
+  // "dddice.com",
 ]);
 
 export const createSrcDoc = (body: string) => {
   return `<html><body>${body}</body></html>`;
 };
 
+// 转换输入的网站成可访问的形式（不带安全策略的）
 export const getEmbedLink = (
   link: string | null | undefined,
 ): IframeData | null => {
@@ -81,6 +85,19 @@ export const getEmbedLink = (
 
   let type: "video" | "generic" = "generic";
   let aspectRatio = { w: 560, h: 840 };
+
+  const googleDrive = link.match(RE_GOOGLE_DRIVE);
+  const fileId = googleDrive?.[1];
+  if (fileId) {
+    link = `https://drive.google.com/file/d/${fileId}/preview`;
+    embeddedLinkCache.set(originalLink, {
+      link,
+      intrinsicSize: aspectRatio,
+      type,
+    });
+    return { link, intrinsicSize: aspectRatio, type };
+  }
+
   const ytLink = link.match(RE_YOUTUBE);
   if (ytLink?.[2]) {
     const time = ytLink[3] ? `&start=${ytLink[3]}` : ``;
@@ -309,14 +326,22 @@ const validateHostname = (
       "*",
     );
 
-    if (allowedHostnames instanceof Set) {
-      return (
-        ALLOWED_DOMAINS.has(bareDomain) ||
-        ALLOWED_DOMAINS.has(bareDomainWithFirstSubdomainWildcarded)
-      );
-    }
+    // if (allowedHostnames instanceof Set) {
+    //   return (
+    //     ALLOWED_DOMAINS.has(bareDomain) ||
+    //     ALLOWED_DOMAINS.has(bareDomainWithFirstSubdomainWildcarded)
+    //   );
+    // }
 
-    if (bareDomain === allowedHostnames.replace(/^www\./, "")) {
+    // if (bareDomain === allowedHostnames.replace(/^www\./, "")) {
+    //   return true;
+    // }
+
+    const isValidated =
+      // @ts-ignore
+      allowedHostnames instanceof Set ||
+      bareDomain === allowedHostnames.replace(/^www\./, "");
+    if (isValidated) {
       return true;
     }
   } catch (error) {
