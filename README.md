@@ -1,3 +1,39 @@
+启动流程：
+1、启动excalidraw-app文件夹下的项目(例如:yarn run start),会有个web服务
+2、在跟目录下启动electron服务（例如:yarn run electron:dev）
+3、todo写个脚本,可以在根目录下一键启动两个服务
+
+
+打包流程：
+1、打包excalidraw-app文件夹下的项目(例如:yarn run build),生成打包文件excalidraw-app/build
+2、修改在打包文件夹excalidraw-app/build的index.html引入路径加个./，改成相对路径，变成下面三行的形式
+    `<script type="module" crossorigin src="./assets/index-NZeT3l8S.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-WAGlrZIe.css">
+  <link rel="manifest" href="./manifest.webmanifest"></head>`
+3、在跟目录下打包electron服务（例如: yarn run build-ele"）
+3、todo可以在根目录下一键打包两个服务，并自动修改引入路径
+
+
+嵌入外链功能changelog
+time:2024-02-24
+author:sivan
+
+总共有5次提交，分别为
+feat(init): 初始化项目
+      将接受到的项目使用git管理并安装依赖初始化,没有做其它操作
+fix(init): 初始化控制台错误
+      修改原本在初始化启动过程中得报错
+feat(devtool): 开发环境增加tool
+     增加react得devtool，方便在开发中调试
+feat(embed): 允许所有外链得嵌入
+      嵌入外链功能代码开发
+feat(readme): 操作流程和changelog
+      补充操作流程和嵌入外链说明
+
+
+
+
+
 <a href="https://excalidraw.com/" target="_blank" rel="noopener">
   <picture>
     <source media="(prefers-color-scheme: dark)" alt="Excalidraw" srcset="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/github/excalidraw_github_cover_2_dark.png" />
