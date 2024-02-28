@@ -962,7 +962,7 @@ const _renderStaticScene = ({
       );
     }
   });
-
+console.log(visibleElements,'visibleElements');
   // Paint visible elements
   visibleElements
     .filter((el) => !isIframeLikeOrItsLabel(el))

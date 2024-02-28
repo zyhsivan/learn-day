@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overlap Image in Canvas</title>
+<style>
+  canvas {
+    border: 1px solid #000;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="originalCanvas" width="300" height="300"></canvas>
+<canvas id="overlapCanvas" width="300" height="300"></canvas>
+
+<script>
+  const originalCanvas = document.getElementById('originalCanvas');
+  const overlapCanvas = document.getElementById('overlapCanvas');
+  const ctxOriginal = originalCanvas.getContext('2d');
+  const ctxOverlap = overlapCanvas.getContext('2d');
+  const image = new Image();
+
+  image.onload = function() {
+    // 绘制图像和矩形到原始Canvas
+    ctxOriginal.drawImage(image, 0, 0, 300, 200); // 假设图像宽度为300，高度为200
+    ctxOriginal.fillStyle = 'rgba(255, 0, 0, 0.5)'; // 红色半透明矩形
+    ctxOriginal.fillRect(100, 100, 200, 200); // 绘制矩形，左上角坐标(100, 100)，宽度200，高度200
+
+    // 计算重叠区域
+    const overlapX = Math.max(0, 100); // 重叠区域的左上角x坐标
+    const overlapY = Math.max(0, 100); // 重叠区域的左上角y坐标
+    const overlapWidth = Math.min(300 - 100, 200); // 重叠区域的宽度
+    const overlapHeight = Math.min(200 - 100, 200); // 重叠区域的高度
+
+    // 只在新Canvas上绘制重叠区域
+    ctxOverlap.drawImage(originalCanvas, overlapX, overlapY, overlapWidth, overlapHeight, 0, 0, overlapWidth, overlapHeight);
+  };
+
+  image.src = './123.jpeg'; // 替换为你的图像路径
+</script>
+
+</body>
+</html>

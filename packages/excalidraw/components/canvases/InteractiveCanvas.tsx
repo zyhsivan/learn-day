@@ -135,14 +135,12 @@ const InteractiveCanvas = (props: InteractiveCanvasProps) => {
 
   return (
     <canvas
-      id='canvas'
+      id="canvas"
       className="excalidraw__canvas interactive"
       style={{
         width: props.appState.width,
         height: props.appState.height,
-        cursor: props.appState.viewModeEnabled
-          ? CURSOR_TYPE.GRAB
-          : CURSOR_TYPE.AUTO,
+
       }}
       width={props.appState.width * props.scale}
       height={props.appState.height * props.scale}

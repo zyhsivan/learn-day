@@ -106,7 +106,7 @@ export interface ExcalidrawElementWithCanvas {
   containingFrameOpacity: number;
 }
 
-const cappedElementCanvasSize = (
+export const cappedElementCanvasSize = (
   element: NonDeletedExcalidrawElement,
   zoom: Zoom,
 ): {
@@ -311,9 +311,21 @@ const drawElementOnCanvas = (
       break;
     }
     case "image": {
-      const img = isInitializedImageElement(element)
-        ? renderConfig.imageCache.get(element.fileId)?.image
-        : undefined;
+      const id = "zxczxc";
+      const b = renderConfig.imageCache.get("zxczxc")?.image;
+      // console.log(element,'elementelementelement');
+      // const img = isInitializedImageElement(element)
+      //   ? renderConfig.imageCache.get(element.fileId)?.image
+      //   : undefined;
+
+      let img = undefined;
+      if (isInitializedImageElement(element)) {
+        if (b) {
+          img = b;
+        } else {
+          img = renderConfig.imageCache.get(element.fileId)?.image;
+        }
+      }
       if (img != null && !(img instanceof Promise)) {
         context.drawImage(
           img,
@@ -408,7 +420,7 @@ const generateElementWithCanvas = (
       appState,
     );
 
-    elementWithCanvasCache.set(element, elementWithCanvas);
+    // elementWithCanvasCache.set(element, elementWithCanvas);
 
     return elementWithCanvas;
   }
@@ -421,6 +433,7 @@ const drawElementFromCanvas = (
   renderConfig: StaticCanvasRenderConfig,
   appState: StaticCanvasAppState,
 ) => {
+  console.log(elementWithCanvas, context, renderConfig, appState, "sadasdas");
   const element = elementWithCanvas.element;
   const padding = getCanvasPadding(element);
   const zoom = elementWithCanvas.scale;
@@ -515,7 +528,7 @@ const drawElementFromCanvas = (
     // we translate context to element center so that rotation and scale
     // originates from the element center
     context.translate(cx, cy);
-
+    console.log(context, "context");
     context.rotate(element.angle);
 
     if (
@@ -786,6 +799,8 @@ export const renderElement = (
         // not exporting → optimized rendering (cache & render from element
         // canvases)
       } else {
+        // 实际的一个元素图片
+        console.log("实际的一个元素canvas", element);
         const elementWithCanvas = generateElementWithCanvas(
           element,
           renderConfig,

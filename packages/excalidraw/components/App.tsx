@@ -401,7 +401,14 @@ import { ElementCanvasButton } from "./MagicButton";
 import { MagicIcon, copyIcon, fullscreenIcon } from "./icons";
 import { EditorLocalStorage } from "../data/EditorLocalStorage";
 import FollowMode from "./FollowMode/FollowMode";
-import { withBatchedUpdates, withBatchedUpdatesThrottled } from "../reactUtils";
+import {
+  isRenderThrottlingEnabled,
+  withBatchedUpdates,
+  withBatchedUpdatesThrottled,
+} from "../reactUtils";
+import { cappedElementCanvasSize } from "../renderer/renderElement";
+import ImageCropper from "./ImageEditor/ImageCropper";
+import { renderStaticScene } from "../renderer/renderScene";
 
 const AppContext = React.createContext<AppClassProperties>(null!);
 const AppPropsContext = React.createContext<AppProps>(null!);
@@ -466,7 +473,6 @@ export const useExcalidrawSetAppState = () =>
 export const useExcalidrawActionManager = () =>
   useContext(ExcalidrawActionManagerContext);
 
-
 const supportsResizeObserver =
   typeof window !== "undefined" && "ResizeObserver" in window;
 
@@ -508,6 +514,7 @@ class App extends React.Component<AppProps, AppState> {
   device: Device = deviceContextInitialValue;
 
   private excalidrawContainerRef = React.createRef<HTMLDivElement>();
+  private staticCanvasRef = React.createRef<HTMLDivElement>();
 
   public scene: Scene;
   public renderer: Renderer;
@@ -525,6 +532,7 @@ class App extends React.Component<AppProps, AppState> {
 
   public files: BinaryFiles = {};
   public imageCache: AppClassProperties["imageCache"] = new Map();
+  public imageCropperCache: AppClassProperties["imageCropperCache"] = new Map();
   private iFrameRefs = new Map<ExcalidrawElement["id"], HTMLIFrameElement>();
   private initializedEmbeds = new Set<ExcalidrawIframeLikeElement["id"]>();
 
@@ -634,7 +642,7 @@ class App extends React.Component<AppProps, AppState> {
         resetCursor: this.resetCursor,
         updateFrameRendering: this.updateFrameRendering,
         toggleSidebar: this.toggleSidebar,
-        getApp:()=> this,
+        getApp: () => this,
         onChange: (cb) => this.onChangeEmitter.on(cb),
         onPointerDown: (cb) => this.onPointerDownEmitter.on(cb),
         onPointerUp: (cb) => this.onPointerUpEmitter.on(cb),
@@ -1569,6 +1577,7 @@ class App extends React.Component<AppProps, AppState> {
                           />
                         )}
                         <StaticCanvas
+                          ref={this.staticCanvasRef}
                           canvas={this.canvas}
                           rc={this.rc}
                           elements={canvasElements}
@@ -1587,6 +1596,12 @@ class App extends React.Component<AppProps, AppState> {
                               this.state.viewBackgroundColor,
                           }}
                         />
+                        <button
+                          style={{ zIndex: 99, position: "absolute" }}
+                          onClick={this.asd}
+                        >
+                          确定
+                        </button>
                         <InteractiveCanvas
                           containerRef={this.excalidrawContainerRef}
                           canvas={this.interactiveCanvas}
@@ -1611,6 +1626,18 @@ class App extends React.Component<AppProps, AppState> {
                           onPointerDown={this.handleCanvasPointerDown}
                           onDoubleClick={this.handleCanvasDoubleClick}
                         />
+                        {this.state.imgCropper && (
+                          <ImageCropper
+                            imgCropper={this.state.imgCropper}
+                            onClose={(callback: any) => {
+                              this.setState({
+                                imgCropper: null,
+                              });
+                              this.replaceImage(callback);
+                            }}
+                          />
+                        )}
+
                         {this.state.userToFollow && (
                           <FollowMode
                             width={this.state.width}
@@ -4439,7 +4466,84 @@ class App extends React.Component<AppProps, AppState> {
       isExistingElement: !!existingTextElement,
     });
   };
+  private replaceImage = ({ element, croppedImageSrc, casInfo }: any) => {
+    function calculateNewRectangle(
+      original: { x1: any; y1: any; width1: any; height1: any;  },
+      newRectangle: { x2: any; y2: any; width2: any; height2: any },
+      scale:number
+    ) {
+      const { x1, y1, width1, height1,  } = original;
+      const { x2, y2, width2, height2 } = newRectangle;
 
+
+      // 计算新矩形的坐标，使其符合原始矩形的缩放倍数
+      const scaledNewX = x2 - (x1 * scale - x2);
+      const scaledNewY = y2 - (y1 * scale - y2);
+      const scaledNewWidth = width2 / scale;
+      const scaledNewHeight = height2 / scale;
+      return {
+        x:scaledNewX,
+       y: scaledNewY,
+       width: scaledNewWidth,
+       height:  scaledNewHeight,
+      };
+    }
+    // 示例使用
+
+
+
+
+    // 将当前裁剪的图片，替换cache中得img
+    // console.warn("replaceImage", element, this.imageCache);
+    const completeImg = this.imageCache.get(element.fileId);
+    if (completeImg) {
+      const image = completeImg.image as HTMLImageElement;
+
+      const elementWidth = element.width
+      const imageWidth = image.width
+
+
+      image.src = croppedImageSrc;
+      // 移除旧的数值
+      // console.warn(completeImg, "completeImg");
+      this.imageCache.set(element.fileId, { ...completeImg, image });
+      // console.warn("replaceImage", element, this.imageCache);
+      // console.log(this.staticCanvasRef.current);
+      // console.log(this.staticCanvasRef.current.newLocal);
+      const originalRectangle = {
+        x1: element.x, // 原始矩形的左上角 x 坐标
+        y1: element.y, // 原始矩形的左上角 y 坐标
+        width1: element.width, // 原始矩形的宽度
+        height1: element.height, // 原始矩形的高度
+
+      };
+      const newRectangle = {
+        x2: element.x, // 新矩形的左上角 x 坐标
+        y2:  element.y, // 新矩形的左上角 y 坐标
+        width2: casInfo.width, // 新矩形的宽度
+        height2: casInfo.height, // 新矩形的高度
+      };
+
+      const scaledNewRectangle = calculateNewRectangle(originalRectangle, newRectangle,imageWidth/elementWidth);
+      mutateElement(element, scaledNewRectangle);
+      this.staticCanvasRef.current.newLocal();
+      // renderStaticScene(
+      //   {
+      //     canvas:this.canvas,
+      //     rc: this.rc,
+      //     scale: this.scale,
+      //     elements: canvasElements,
+      //     visibleElements: this.visibleElements,
+      //     appState: this.appState,
+      //     renderConfig: this.renderConfig,
+      //   },
+      //   isRenderThrottlingEnabled(),
+      // );
+    }
+
+    // 将完整的图片进行存储
+    // 重新渲染
+  };
   private handleCanvasDoubleClick = (
     event: React.MouseEvent<HTMLCanvasElement>,
   ) => {
@@ -4518,6 +4622,42 @@ class App extends React.Component<AppProps, AppState> {
         this.setState({
           activeEmbeddable: { element: hitElement, state: "active" },
         });
+        return;
+      }
+
+      const isTextEditDisabled = isInitializedImageElement(hitElement);
+      if (isTextEditDisabled) {
+        // console.log(hitElement, "hitElement");
+        // console.log(this.imageCache.get(hitElement.fileId)?.image, "image");
+        // const a = {
+        //   ...hitElement,
+        //   id: "zyh",
+        //   type: "rectangle",
+        //   strokeColor: "#1684FC",
+        //   strokeStyle: "solid",
+        //   strokeWidth: 2,
+        //   x: hitElement.x - 10,
+        //   y: hitElement.y - 10,
+        //   height: hitElement.height + 10,
+        //   width: hitElement.width + 10,
+        // };
+        this.setState({
+          imgCropper: {
+            element: hitElement,
+            image: this.imageCache.get(hitElement.fileId)?.image,
+          },
+        });
+
+        // this.scene.addNewElement(a);
+        // mutateElement(a, {
+        //   width: a.width,
+        // });
+        // this.setState({
+        //   imgCropper: {
+        //     element: hitElement,
+        //     image: this.imageCache.get(hitElement.fileId)?.image,
+        //   },
+        // });
         return;
       }
 
@@ -5252,6 +5392,7 @@ class App extends React.Component<AppProps, AppState> {
   private handleCanvasPointerDown = (
     event: React.PointerEvent<HTMLElement>,
   ) => {
+    console.log("handleCanvasPointerDown");
     this.maybeCleanupAfterMissingPointerUp(event.nativeEvent);
     this.maybeUnfollowRemoteUser();
 
@@ -5349,6 +5490,7 @@ class App extends React.Component<AppProps, AppState> {
         preferSelected: true,
         includeLockedElements: true,
       });
+
       const pointerDownState = this.initialPointerDownState(event);
       pointerDownState.hit.element = element;
       this.props?.onPointerDown?.(this.state.activeTool, pointerDownState);
@@ -5566,6 +5708,8 @@ class App extends React.Component<AppProps, AppState> {
   private handleCanvasPointerUp = (
     event: React.PointerEvent<HTMLCanvasElement>,
   ) => {
+    return;
+    console.log(handleCanvasPointerUp, "handleCanvasPointerUp");
     this.removePointer(event);
     this.lastPointerUpEvent = event;
 
@@ -6456,6 +6600,123 @@ class App extends React.Component<AppProps, AppState> {
     return element;
   };
 
+  private asd = () => {
+    // imgCropper: {
+    //   imageelement: hitElement,
+    //   image: this.imageCache.get(hitElement.fileId)?.image,
+    //   react:a
+    // }
+
+    const { imageelement, rect } = this.state.imgCropper;
+    console.log(imageelement, rect, "this.state.imgCropper");
+    const { x: rectX, y: rectY, width: rectWidth, height: rectHeight } = rect;
+    const ctx1 = this.canvas.getContext("2d");
+    const imageData = ctx1.getImageData(rectX, rectY, rectWidth, rectHeight);
+    console.log(imageData, "imageData");
+    const base64String = this.canvas.toDataURL("image/png");
+    const img = new Image();
+    img.src = base64String;
+
+    // const canvas = document.createElement("canvas");
+    // canvas.width = imageData.width;
+    // canvas.height = imageData.height;
+    // // 获取canvas的2D渲染上下文
+    // const ctx1 = canvas.getContext("2d");
+    // // 将ImageData对象绘制到canvas上
+    // ctx1.putImageData(imageData, 0, 0);
+    // // 将canvas转换为Base64编码的PNG图片
+    // const base64String = canvas.toDataURL("image/png");
+    // console.log(base64String,'base64String');
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d")!;
+    const padding = 20;
+
+    const { width, height, scale } = cappedElementCanvasSize(
+      rect,
+      this.state.zoom,
+    );
+
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.translate(padding * scale, padding * scale);
+    ctx.scale(window.devicePixelRatio * scale, window.devicePixelRatio * scale);
+
+    // 将ImageData对象绘制到canvas上
+    ctx.putImageData(imageData, 0, 0);
+
+    // 将canvas转换为Blob对象
+    canvas.toBlob((blob) => {
+      // Blob对象转换为File对象
+      const imageFile = new File([blob], "image.png", { type: "image/png" });
+      console.log(imageFile, "file");
+
+      const imageElement = newImageElement({
+        type: "image",
+        x: rectX,
+        y: rectY,
+        strokeColor: this.state.currentItemStrokeColor,
+        backgroundColor: this.state.currentItemBackgroundColor,
+        fillStyle: this.state.currentItemFillStyle,
+        strokeWidth: this.state.currentItemStrokeWidth,
+        strokeStyle: this.state.currentItemStrokeStyle,
+        roughness: this.state.currentItemRoughness,
+        roundness: null,
+        opacity: this.state.currentItemOpacity,
+        locked: false,
+        frameId: null,
+        id: "qwe",
+        fileId: "zxczxc",
+      });
+      // this.scene.addNewElement(imageElement);
+      this.imageCache.set("zxczxc", {
+        image: img,
+        mimeType: "image/jpeg",
+      });
+      this.insertImageElement(
+        imageElement,
+        imageFile,
+        /* showCursorImagePreview */ true,
+      );
+    }, "image/png"); // 这里指定了图像的MIME类型
+
+    // function calculateOverlap(image, rect) {
+    //   // 图像矩形和矩形对象的属性
+    //   const { x: imageX, y: imageY, width: imageWidth, height: imageHeight } = image;
+    //   const { x: rectX, y: rectY, width: rectWidth, height: rectHeight } = rect;
+    //   // 计算两个矩形的左下角和右上角坐标
+    //   const imageLeft = imageX;
+    //   const imageTop = imageY;
+    //   const imageRight = imageX + imageWidth;
+    //   const imageBottom = imageY + imageHeight;
+    //   const rectLeft = rectX;
+    //   const rectTop = rectY;
+    //   const rectRight = rectX + rectWidth;
+    //   const rectBottom = rectY + rectHeight;
+    //   // 计算重叠区域的左上角和右下角坐标
+    //   const overlapLeft = Math.max(imageLeft, rectLeft);
+    //   const overlapTop = Math.max(imageTop, rectTop);
+    //   const overlapRight = Math.min(imageRight, rectRight);
+    //   const overlapBottom = Math.min(imageBottom, rectBottom);
+    //   // 计算重叠区域的宽度和高度
+    //   const overlapWidth = Math.max(0, overlapRight - overlapLeft);
+    //   const overlapHeight = Math.max(0, overlapBottom - overlapTop);
+    //   // 如果没有重叠，返回null
+    //   if (overlapWidth <= 0 || overlapHeight <= 0) {
+    //     return null;
+    //   }
+    //   // 返回重叠区域的坐标和尺寸
+    //   return {
+    //     x: overlapLeft,
+    //     y: overlapTop,
+    //     width: overlapWidth,
+    //     height: overlapHeight
+    //   };
+    // }
+    // const overlap = calculateOverlap(imageelement, rect);
+    // console.log(overlap); // 输出重叠区域的坐标和尺寸
+    // this.scene.addNewElement(a);
+  };
   private handleLinearElementOnPointerDown = (
     event: React.PointerEvent<HTMLElement>,
     elementType: ExcalidrawLinearElement["type"],
@@ -6652,6 +6913,8 @@ class App extends React.Component<AppProps, AppState> {
         draggingElement: element,
       });
     } else {
+      console.log(JSON.parse(JSON.stringify(element)), "创建element");
+      console.log(element, "创建element");
       this.scene.addNewElement(element);
       this.setState({
         multiElement: null,
@@ -8906,10 +9169,9 @@ class App extends React.Component<AppProps, AppState> {
   private onReadOnlyModeMouseLeft = (
     event: React.MouseEvent<HTMLElement | HTMLCanvasElement>,
   ) => {
-
     if (
       (("pointerType" in event.nativeEvent &&
-          event.nativeEvent.pointerType === "touch") ||
+        event.nativeEvent.pointerType === "touch") ||
         ("pointerType" in event.nativeEvent &&
           event.nativeEvent.pointerType === "pen" &&
           // always allow if user uses a pen secondary button
@@ -8944,20 +9206,20 @@ class App extends React.Component<AppProps, AppState> {
       {
         ...(element && !this.state.selectedElementIds[element.id]
           ? {
-            ...this.state,
-            ...selectGroupsForSelectedElements(
-              {
-                editingGroupId: this.state.editingGroupId,
-                selectedElementIds: { [element.id]: true },
-              },
-              this.scene.getNonDeletedElements(),
-              this.state,
-              this,
-            ),
-            selectedLinearElement: isLinearElement(element)
-              ? new LinearElementEditor(element, this.scene)
-              : null,
-          }
+              ...this.state,
+              ...selectGroupsForSelectedElements(
+                {
+                  editingGroupId: this.state.editingGroupId,
+                  selectedElementIds: { [element.id]: true },
+                },
+                this.scene.getNonDeletedElements(),
+                this.state,
+                this,
+              ),
+              selectedLinearElement: isLinearElement(element)
+                ? new LinearElementEditor(element, this.scene)
+                : null,
+            }
           : this.state),
         showHyperlinkPopup: false,
       },
@@ -9087,14 +9349,14 @@ class App extends React.Component<AppProps, AppState> {
       return false;
     }
 
-    this.setState({
-      // TODO: rename this state field to "isScaling" to distinguish
-      // it from the generic "isResizing" which includes scaling and
-      // rotating
-      isResizing: transformHandleType && transformHandleType !== "rotation",
-      isRotating: transformHandleType === "rotation",
-      activeEmbeddable: null,
-    });
+    // this.setState({
+    //   // TODO: rename this state field to "isScaling" to distinguish
+    //   // it from the generic "isResizing" which includes scaling and
+    //   // rotating
+    //   isResizing: transformHandleType && transformHandleType !== "rotation",
+    //   isRotating: transformHandleType === "rotation",
+    //   activeEmbeddable: null,
+    // });
     const pointerCoords = pointerDownState.lastCoords;
     let [resizeX, resizeY] = getGridPoint(
       pointerCoords.x - pointerDownState.resize.offset.x,
@@ -9154,9 +9416,9 @@ class App extends React.Component<AppProps, AppState> {
       resizeX += snapOffset.x;
       resizeY += snapOffset.y;
 
-      this.setState({
-        snapLines,
-      });
+      // this.setState({
+      //   snapLines,
+      // });
     }
 
     if (
@@ -9188,9 +9450,9 @@ class App extends React.Component<AppProps, AppState> {
         ).forEach((element) => elementsToHighlight.add(element));
       });
 
-      this.setState({
-        elementsToHighlight: [...elementsToHighlight],
-      });
+      // this.setState({
+      //   elementsToHighlight: [...elementsToHighlight],
+      // });
 
       return true;
     }

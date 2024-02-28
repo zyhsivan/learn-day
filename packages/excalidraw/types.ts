@@ -322,6 +322,7 @@ export interface AppState {
   userToFollow: UserToFollow | null;
   /** the clientIds of the users following the current user */
   followedBy: Set<SocketId>;
+  imgCropper: null | { [x: string]: any };
 }
 
 export type UIAppState = Omit<

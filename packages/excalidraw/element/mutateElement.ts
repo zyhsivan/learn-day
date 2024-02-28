@@ -12,6 +12,8 @@ type ElementUpdate<TElement extends ExcalidrawElement> = Omit<
   "id" | "version" | "versionNonce"
 >;
 
+
+// 更新元素的地方
 // This function tracks updates of text elements for the purposes for collaboration.
 // The version is used to compare updates when more than one user is working in
 // the same drawing. Note: this will trigger the component to update. Make sure you
@@ -21,8 +23,9 @@ export const mutateElement = <TElement extends Mutable<ExcalidrawElement>>(
   updates: ElementUpdate<TElement>,
   informMutation = true,
 ): TElement => {
+  // return
   let didChange = false;
-
+console.log("mutateElement",element,updates,informMutation);
   // casting to any because can't use `in` operator
   // (see https://github.com/microsoft/TypeScript/issues/21732)
   const { points, fileId } = updates as any;

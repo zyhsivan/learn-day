@@ -148,42 +148,59 @@ export default class MyExcalidraw extends React.Component<AppProps, AppState>{
         // useHandleLibrary(this.state.excalidrawAPI)
     }
 
-    onPointerDown = (activityTool:any,pointerDownState:any)=>{
-        console.log(activityTool);
-        if(pointerDownState.hit.element != null ){
-            var ele = pointerDownState.hit.element;
-            if(ele.type == 'image'){
-              var files = excalidrawAPI.getFiles();
-              var item = files[ele.fileId];
+    // onPointerDown = (activityTool:any,pointerDownState:any)=>{
+    //   // return
+    //     // console.log(activityTool);
+    //     if(pointerDownState.hit.element != null ){
+    //         var ele = pointerDownState.hit.element;
+    //         if(ele.type == 'image'){
+    //           var files = excalidrawAPI.getFiles();
+    //           var item = files[ele.fileId];
 
-              if(this.state.isReadOnlyStatus){
-                if(ele.link == undefined){
-                  if(item != null){
-                    this.setState({
-                      isImagePreviewVisible:true,
-                      imagePreviewData:item.dataURL
-                    })
-                  }
-                }else{
-                  if(ipcRenderer != null){
-                    ipcRenderer.send("open-url",ele.link);
-                  }
-                }
-              }else{
-                const nowTime = new Date().getTime();
-                if(nowTime - lastTime < 300){
-                  if(item != null){
-                    this.setState({
-                      isImagePreviewVisible:true,
-                      imagePreviewData:item.dataURL
-                    })
-                  }
-                }
-              }
-            }
+    //           if(this.state.isReadOnlyStatus){
+    //             if(ele.link == undefined){
+    //               if(item != null){
+    //                 this.setState({
+    //                   isImagePreviewVisible:true,
+    //                   imagePreviewData:item.dataURL
+    //                 })
+    //               }
+    //             }else{
+    //               if(ipcRenderer != null){
+    //                 ipcRenderer.send("open-url",ele.link);
+    //               }
+    //             }
+    //           }else{
+    //             const nowTime = new Date().getTime();
+    //             if(nowTime - lastTime < 300){
+    //               if(item != null){
+    //                 this.setState({
+    //                   isImagePreviewVisible:true,
+    //                   imagePreviewData:item.dataURL
+    //                 })
+    //               }
+    //             }
+    //           }
+    //         }
+    //     }
+    //     lastTime = new Date().getTime();
+    // }
+
+    onPointerDown = (activityTool: any, pointerDownState: { hit: { element: any; }; }) => {
+      const imageElement = pointerDownState.hit.element;
+      if (!imageElement || imageElement.type !== 'image') return;
+      const files = excalidrawAPI.getFiles();
+      const imageFile = files[imageElement.fileId];
+      if (!imageFile) return;
+
+      // 仅在只读状态下处理点击事件
+      if (this.state.isReadOnlyStatus) {
+        if (imageElement.link) {
+          ipcRenderer.send("open-url", imageElement.link);
         }
-        lastTime = new Date().getTime();
-    }
+      }
+    };
+
 
     onCopy = async (type: "png" | "svg" | "json") => {
         if (!excalidrawAPI) {

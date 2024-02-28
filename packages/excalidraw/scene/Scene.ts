@@ -322,6 +322,7 @@ class Scene {
   }
 
   addNewElement = (element: ExcalidrawElement) => {
+    console.log(element,'addNewElement');
     if (element.frameId) {
       this.insertElementAtIndex(element, this.getElementIndex(element.frameId));
     } else {

@@ -1,4 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { RoughCanvas } from "roughjs/bin/canvas";
 import { renderStaticScene } from "../../renderer/renderScene";
 import { isShallowEqual } from "../../utils";
@@ -19,11 +24,11 @@ type StaticCanvasProps = {
   renderConfig: StaticCanvasRenderConfig;
 };
 
-const StaticCanvas = (props: StaticCanvasProps) => {
+const StaticCanvas = forwardRef((props: StaticCanvasProps, ref) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const isComponentMounted = useRef(false);
 
-  useEffect(() => {
+  const newLocal = () => {
     const wrapper = wrapperRef.current;
     if (!wrapper) {
       return;
@@ -70,10 +75,14 @@ const StaticCanvas = (props: StaticCanvasProps) => {
       },
       isRenderThrottlingEnabled(),
     );
-  });
+  };
+  useImperativeHandle(ref, () => ({
+    newLocal,
+  }));
+  useEffect(newLocal);
 
   return <div className="excalidraw__canvas-wrapper" ref={wrapperRef} />;
-};
+});
 
 const getRelevantAppStateProps = (
   appState: AppState,

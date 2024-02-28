@@ -1,0 +1,9 @@
+.excalidraw {
+ .image-cropper{
+  z-index: 99;
+  .ant-modal-body{
+    width: 60vw;
+    height: 75vh;
+  }
+ }
+}

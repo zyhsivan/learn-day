@@ -107,6 +107,7 @@ export const getDefaultAppState = (): Omit<
     objectsSnapModeEnabled: false,
     userToFollow: null,
     followedBy: new Set(),
+    imgCropper: null,
   };
 };
 

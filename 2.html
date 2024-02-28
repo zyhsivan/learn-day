@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draw Canvas on Canvas</title>
+<style>
+  canvas {
+    border: 1px solid #000;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="sourceCanvas" width="200" height="200"></canvas>
+<canvas id="destinationCanvas" width="400" height="400"></canvas>
+
+<script>
+  const sourceCanvas = document.getElementById('sourceCanvas');
+  const destinationCanvas = document.getElementById('destinationCanvas');
+  const ctxSource = sourceCanvas.getContext('2d');
+  const ctxDestination = destinationCanvas.getContext('2d');
+
+  // 在源Canvas上绘制一个红色矩形
+  ctxSource.fillStyle = 'red';
+  ctxSource.fillRect(0, 0, 200, 200);
+
+  // 将源Canvas绘制到目标Canvas上
+  // ctxDestination.drawImage(sourceCanvas, 0, 0, 400, 400);
+</script>
+
+</body>
+</html>
