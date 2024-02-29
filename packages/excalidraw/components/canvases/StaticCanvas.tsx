@@ -62,7 +62,7 @@ const StaticCanvas = forwardRef((props: StaticCanvasProps, ref) => {
     if (canvas.height !== scaledHeight) {
       canvas.height = scaledHeight;
     }
-
+console.warn(JSON.parse( JSON.stringify(props.elements)),' props.elements');
     renderStaticScene(
       {
         canvas,

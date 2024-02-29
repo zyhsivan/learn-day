@@ -187,3 +187,27 @@ export const getNormalizedDimensions = (
 
   return ret;
 };
+
+/**
+ * 根据缩放比例计算新矩形的大小和位置。
+
+ * @param {Object} rect - 新矩形的坐标和大小。
+ * @param {number} scale - 缩放比例。
+ * @returns {Object} - 缩放后新矩形的大小。
+ */
+export const calculateScaledRectSize = (
+  rect: { width: number; height: number },
+  scale: { widthScale: number; heightScale: number },
+): { width: number; height: number } => {
+  const { width: newRectWidth, height: newRectHeight } = rect;
+
+  const { widthScale, heightScale } = scale;
+  // 计算新矩形的大小，使其符合原始矩形的缩放倍数
+  const scaledNewWidth = newRectWidth / widthScale;
+  const scaledNewHeight = newRectHeight / heightScale;
+
+  return {
+    width: scaledNewWidth,
+    height: scaledNewHeight,
+  };
+};

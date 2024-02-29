@@ -1,31 +1,32 @@
-import React, { memo, useEffect, useRef, useState } from "react";
-import { Image, Modal } from "antd";
+import { memo, useEffect, useRef, useState } from "react";
+import { Modal } from "antd";
 import Cropper from "cropperjs";
 import "./ImageCropper.scss";
 import "cropperjs/dist/cropper.css";
 
+export interface CroppedImage<T> {
+  src: string;
+}
+
 const ImageCropper = memo(({ imgCropper, onClose }: any) => {
-  console.log(imgCropper);
   const [isModalOpen, setIsModalOpen] = useState(true);
   const [first, setFirst] = useState("");
   const imgRef = useRef<HTMLImageElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const cropper = useRef<any>(null);
+  const cropper = useRef<Cropper>(null);
   const showModal = () => {
     setIsModalOpen(true);
   };
 
   const handleOk = () => {
-    cropper.current.crop();
-    const cas = cropper.current.getCroppedCanvas(); // 获取被裁剪后的canvas
-    const base64 = cas.toDataURL("image/jpeg"); // 转换为base64
-    console.log(base64, "base64");
-    console.log(cas, "cas");
+    cropper.current!.crop();
+    const croppedCanvas = cropper.current!.getCroppedCanvas(); // 获取被裁剪后的canvas
+    const base64 = croppedCanvas.toDataURL("image/jpeg"); // 转换为base64
+    console.log(croppedCanvas, "croppedCanvas");
     setFirst(base64);
     onClose({
       element: imgCropper.element,
-      croppedImageSrc: base64,
-      casInfo: cas,
+      croppedImage: { src: base64, croppedCanvas, },
     });
     // setIsModalOpen(false);
   };
@@ -36,12 +37,13 @@ const ImageCropper = memo(({ imgCropper, onClose }: any) => {
   };
   const [imgSrc, setImgSrc] = useState("");
   useEffect(() => {
+    // @ts-ignore
     cropper.current = new Cropper(imgRef.current!, {
       preview: previewRef.current!, // 预览视图
     });
 
     return () => {
-      cropper.current.destroy();
+      cropper.current!.destroy();
     };
   }, []);
 

@@ -381,3 +381,8 @@ export const EDITOR_LS_KEYS = {
   MERMAID_TO_EXCALIDRAW: "mermaid-to-excalidraw",
   PUBLISH_LIBRARY: "publish-library-data",
 } as const;
+
+export const IMAGE_ACTION_TYPR = {
+  INSERT: "insert",
+  CROPPER: "cropper",
+} as const;

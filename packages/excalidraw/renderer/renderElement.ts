@@ -41,6 +41,7 @@ import { getDefaultAppState } from "../appState";
 import {
   BOUND_TEXT_PADDING,
   FRAME_STYLE,
+  IMAGE_ACTION_TYPR,
   MAX_DECIMALS_FOR_SVG_EXPORT,
   MIME_TYPES,
   SVG_NS,
@@ -311,17 +312,18 @@ const drawElementOnCanvas = (
       break;
     }
     case "image": {
-      const id = "zxczxc";
-      const b = renderConfig.imageCache.get("zxczxc")?.image;
       // console.log(element,'elementelementelement');
-      // const img = isInitializedImageElement(element)
+      // let img = isInitializedImageElement(element)
       //   ? renderConfig.imageCache.get(element.fileId)?.image
       //   : undefined;
+      console.log(element, "element");
 
       let img = undefined;
       if (isInitializedImageElement(element)) {
-        if (b) {
-          img = b;
+        if (element.actionType === IMAGE_ACTION_TYPR.INSERT) {
+          img =
+            renderConfig.fullImageCache?.get(element.fileId)?.image ||
+            renderConfig.imageCache.get(element.fileId)?.image;
         } else {
           img = renderConfig.imageCache.get(element.fileId)?.image;
         }
@@ -406,9 +408,22 @@ const generateElementWithCanvas = (
   const boundTextElementVersion = getBoundTextElement(element)?.version || null;
   const containingFrameOpacity = getContainingFrame(element)?.opacity || 100;
 
+  // 裁剪的时候需要重新渲染，删除
+  // 导入的时候，现状会调用3次，
+  // 如果cropper,图片，需要重新生成
+  // @ts-ignore
+  const shouldRegenerateByAction = !!element.actionType;
+  console.log(element.actionType, "!element.actionType");
+  console.log(shouldRegenerateByAction, "shouldRegenerateByAction");
+  // console.log(shouldRegenerateByAction, element, "generateElementWithCanvas");
+  // console.log(renderConfig, "renderConfig");
+  console.log(element.width, "element.width");
+  console.log(element.height, "element.height");
+  // console.log(renderConfig.imageCache.get(element.fileId)?.image.src);
   if (
     !prevElementWithCanvas ||
     shouldRegenerateBecauseZoom ||
+    shouldRegenerateByAction ||
     prevElementWithCanvas.theme !== appState.theme ||
     prevElementWithCanvas.boundTextElementVersion !== boundTextElementVersion ||
     prevElementWithCanvas.containingFrameOpacity !== containingFrameOpacity
@@ -420,7 +435,7 @@ const generateElementWithCanvas = (
       appState,
     );
 
-    // elementWithCanvasCache.set(element, elementWithCanvas);
+    elementWithCanvasCache.set(element, elementWithCanvas);
 
     return elementWithCanvas;
   }
@@ -433,7 +448,6 @@ const drawElementFromCanvas = (
   renderConfig: StaticCanvasRenderConfig,
   appState: StaticCanvasAppState,
 ) => {
-  console.log(elementWithCanvas, context, renderConfig, appState, "sadasdas");
   const element = elementWithCanvas.element;
   const padding = getCanvasPadding(element);
   const zoom = elementWithCanvas.scale;
@@ -528,7 +542,6 @@ const drawElementFromCanvas = (
     // we translate context to element center so that rotation and scale
     // originates from the element center
     context.translate(cx, cy);
-    console.log(context, "context");
     context.rotate(element.angle);
 
     if (

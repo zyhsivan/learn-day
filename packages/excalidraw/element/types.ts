@@ -126,6 +126,7 @@ export type ExcalidrawImageElement = _ExcalidrawElementBase &
     status: "pending" | "saved" | "error";
     /** X and Y scale factors <-1, 1>, used for image axis flipping */
     scale: [number, number];
+    actionType?: "insert" | "cropper";
   }>;
 
 export type InitializedExcalidrawImageElement = MarkNonNullable<

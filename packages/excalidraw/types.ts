@@ -558,6 +558,13 @@ export type AppClassProperties = {
       mimeType: ValueOf<typeof IMAGE_MIME_TYPES>;
     }
   >;
+  fullImageCache: Map<
+    FileId,
+    {
+      image: HTMLImageElement | Promise<HTMLImageElement>;
+      mimeType: ValueOf<typeof IMAGE_MIME_TYPES>;
+    }
+  >;
   files: BinaryFiles;
   device: App["device"];
   scene: App["scene"];
@@ -667,7 +674,7 @@ export type ExcalidrawImperativeAPI = {
   setCursor: InstanceType<typeof App>["setCursor"];
   resetCursor: InstanceType<typeof App>["resetCursor"];
   toggleSidebar: InstanceType<typeof App>["toggleSidebar"];
-  getApp:()=>InstanceType<typeof App>;
+  getApp: () => InstanceType<typeof App>;
   /**
    * Disables rendering of frames (including element clipping), but currently
    * the frames are still interactive in edit mode. As such, this API should be

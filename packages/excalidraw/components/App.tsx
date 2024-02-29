@@ -90,6 +90,7 @@ import {
   TOOL_TYPE,
   EDITOR_LS_KEYS,
   isIOS,
+  IMAGE_ACTION_TYPR,
 } from "../constants";
 import { ExportedElements, exportCanvas, loadFromBlob } from "../data";
 import Library, { distributeLibraryItemsOnSquareGrid } from "../data/library";
@@ -204,7 +205,10 @@ import {
   isArrowKey,
   KEYS,
 } from "../keys";
-import { isElementInViewport } from "../element/sizeHelpers";
+import {
+  calculateScaledRectSize,
+  isElementInViewport,
+} from "../element/sizeHelpers";
 import {
   distance2d,
   getCornerRadius,
@@ -407,7 +411,7 @@ import {
   withBatchedUpdatesThrottled,
 } from "../reactUtils";
 import { cappedElementCanvasSize } from "../renderer/renderElement";
-import ImageCropper from "./ImageEditor/ImageCropper";
+import ImageCropper, { CroppedImage } from "./ImageEditor/ImageCropper";
 import { renderStaticScene } from "../renderer/renderScene";
 
 const AppContext = React.createContext<AppClassProperties>(null!);
@@ -532,7 +536,7 @@ class App extends React.Component<AppProps, AppState> {
 
   public files: BinaryFiles = {};
   public imageCache: AppClassProperties["imageCache"] = new Map();
-  public imageCropperCache: AppClassProperties["imageCropperCache"] = new Map();
+  public fullImageCache: AppClassProperties["fullImageCache"] = new Map();
   private iFrameRefs = new Map<ExcalidrawElement["id"], HTMLIFrameElement>();
   private initializedEmbeds = new Set<ExcalidrawIframeLikeElement["id"]>();
 
@@ -1590,6 +1594,7 @@ class App extends React.Component<AppProps, AppState> {
                           appState={this.state}
                           renderConfig={{
                             imageCache: this.imageCache,
+                            fullImageCache: this.fullImageCache,
                             isExporting: false,
                             renderGrid: true,
                             canvasBackgroundColor:
@@ -4466,80 +4471,105 @@ class App extends React.Component<AppProps, AppState> {
       isExistingElement: !!existingTextElement,
     });
   };
-  private replaceImage = ({ element, croppedImageSrc, casInfo }: any) => {
-    function calculateNewRectangle(
-      original: { x1: any; y1: any; width1: any; height1: any;  },
-      newRectangle: { x2: any; y2: any; width2: any; height2: any },
-      scale:number
-    ) {
-      const { x1, y1, width1, height1,  } = original;
-      const { x2, y2, width2, height2 } = newRectangle;
+  private replaceImage = ({
+    element,
+    croppedImage,
+  }: {
+    element: InitializedExcalidrawImageElement;
+    croppedImage: {
+      src: string;
+      croppedCanvas: HTMLCanvasElement;
+    };
+  }) => {
+    const fullImage = this.imageCache.get(element.fileId);
+    if (fullImage) {
+      const image = fullImage.image as HTMLImageElement;
+      // 将完整的图片进行存储
+      if (!this.fullImageCache.has(element.fileId)) {
+        const clonedImage = new Image();
+        clonedImage.src = image.src;
+        this.fullImageCache.set(element.fileId, {
+          ...fullImage,
+          image: clonedImage,
+        });
+      }
+      const that = this;
 
+      function imageToBase64(url) {
+        const img = new Image();
+        img.src = url;
+        img.crossOrigin = "Anonymous"; // 如果图片跨域，需要服务器支持CORS
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          const base64String = canvas.toDataURL("image/jpeg");
+          // console.warn(base64String);
+          image.src = base64String;
+          that.imageCache.set(element.fileId, {
+            ...fullImage,
+            image,
+          });
 
-      // 计算新矩形的坐标，使其符合原始矩形的缩放倍数
-      const scaledNewX = x2 - (x1 * scale - x2);
-      const scaledNewY = y2 - (y1 * scale - y2);
-      const scaledNewWidth = width2 / scale;
-      const scaledNewHeight = height2 / scale;
-      return {
-        x:scaledNewX,
-       y: scaledNewY,
-       width: scaledNewWidth,
-       height:  scaledNewHeight,
+          // 计算裁剪的图片尺寸
+          const scaledNewRectSize = calculateScaledRectSize(
+            croppedImage.croppedCanvas,
+            {
+              widthScale: image.width / element.width,
+              heightScale: image.height / element.height,
+            },
+          );
+
+          mutateElement(element, {
+            ...scaledNewRectSize,
+            actionType: IMAGE_ACTION_TYPR.CROPPER,
+          });
+        };
+        img.onerror = function (error) {
+          console.error(error);
+        };
+      }
+
+      // imageToBase64("https://fengyuanchen.github.io/cropperjs/images/picture.jpg");
+
+      image.src = croppedImage.src;
+      // 计算裁剪的图片尺寸
+      const scaledNewRectSize = calculateScaledRectSize(
+        croppedImage.croppedCanvas,
+        {
+          widthScale: image.width / element.width,
+          heightScale: image.height / element.height,
+        },
+      );
+
+      this.imageCache.set(element.fileId, {
+        ...fullImage,
+        image,
+      });
+
+      image.onload = () => {
+        mutateElement(element, {
+          ...scaledNewRectSize,
+          actionType: IMAGE_ACTION_TYPR.CROPPER,
+        });
       };
     }
-    // 示例使用
 
-
-
-
-    // 将当前裁剪的图片，替换cache中得img
-    // console.warn("replaceImage", element, this.imageCache);
-    const completeImg = this.imageCache.get(element.fileId);
-    if (completeImg) {
-      const image = completeImg.image as HTMLImageElement;
-
-      const elementWidth = element.width
-      const imageWidth = image.width
-
-
-      image.src = croppedImageSrc;
-      // 移除旧的数值
-      // console.warn(completeImg, "completeImg");
-      this.imageCache.set(element.fileId, { ...completeImg, image });
-      // console.warn("replaceImage", element, this.imageCache);
-      // console.log(this.staticCanvasRef.current);
-      // console.log(this.staticCanvasRef.current.newLocal);
-      const originalRectangle = {
-        x1: element.x, // 原始矩形的左上角 x 坐标
-        y1: element.y, // 原始矩形的左上角 y 坐标
-        width1: element.width, // 原始矩形的宽度
-        height1: element.height, // 原始矩形的高度
-
-      };
-      const newRectangle = {
-        x2: element.x, // 新矩形的左上角 x 坐标
-        y2:  element.y, // 新矩形的左上角 y 坐标
-        width2: casInfo.width, // 新矩形的宽度
-        height2: casInfo.height, // 新矩形的高度
-      };
-
-      const scaledNewRectangle = calculateNewRectangle(originalRectangle, newRectangle,imageWidth/elementWidth);
-      mutateElement(element, scaledNewRectangle);
-      this.staticCanvasRef.current.newLocal();
-      // renderStaticScene(
-      //   {
-      //     canvas:this.canvas,
-      //     rc: this.rc,
-      //     scale: this.scale,
-      //     elements: canvasElements,
-      //     visibleElements: this.visibleElements,
-      //     appState: this.appState,
-      //     renderConfig: this.renderConfig,
-      //   },
-      //   isRenderThrottlingEnabled(),
-      // );
-    }
+    // this.staticCanvasRef.current.newLocal();
+    // renderStaticScene(
+    //   {
+    //     canvas:this.canvas,
+    //     rc: this.rc,
+    //     scale: this.scale,
+    //     elements: canvasElements,
+    //     visibleElements: this.visibleElements,
+    //     appState: this.appState,
+    //     renderConfig: this.renderConfig,
+    //   },
+    //   isRenderThrottlingEnabled(),
+    // );
 
     // 将完整的图片进行存储
     // 重新渲染
@@ -4644,7 +4674,9 @@ class App extends React.Component<AppProps, AppState> {
         this.setState({
           imgCropper: {
             element: hitElement,
-            image: this.imageCache.get(hitElement.fileId)?.image,
+            image:
+              this.fullImageCache.get(hitElement.fileId)?.image ||
+              this.imageCache.get(hitElement.fileId)?.image,
           },
         });
 
@@ -5708,8 +5740,7 @@ class App extends React.Component<AppProps, AppState> {
   private handleCanvasPointerUp = (
     event: React.PointerEvent<HTMLCanvasElement>,
   ) => {
-    return;
-    console.log(handleCanvasPointerUp, "handleCanvasPointerUp");
+    // console.log(handleCanvasPointerUp, "handleCanvasPointerUp");
     this.removePointer(event);
     this.lastPointerUpEvent = event;
 
@@ -8458,6 +8489,7 @@ class App extends React.Component<AppProps, AppState> {
 
     // generate image id (by default the file digest) before any
     // resizing/compression takes place to keep it more portable
+    console.log(this.props.generateIdForFile, "this.props.generateIdForFile");
     const fileId = await ((this.props.generateIdForFile?.(
       imageFile,
     ) as Promise<FileId>) || generateIdFromFile(imageFile));
@@ -8508,6 +8540,7 @@ class App extends React.Component<AppProps, AppState> {
       _imageElement,
       {
         fileId,
+        actionType: IMAGE_ACTION_TYPR.INSERT,
       },
       false,
     ) as NonDeleted<InitializedExcalidrawImageElement>;
@@ -8525,7 +8558,12 @@ class App extends React.Component<AppProps, AppState> {
               lastRetrieved: Date.now(),
             },
           };
-          const cachedImageData = this.imageCache.get(fileId);
+          const cachedImageData =
+            this.fullImageCache.get(fileId) || this.imageCache.get(fileId);
+
+          console.log(cachedImageData, "cachedImageData");
+          console.log(this.fullImageCache, "this.fullImageCache");
+          console.log(this.imageCache, "this.fullImageCache");
           if (!cachedImageData) {
             this.addNewImagesToImageCache();
             await this.updateImageCache([imageElement]);
@@ -8704,9 +8742,12 @@ class App extends React.Component<AppProps, AppState> {
     imageElement: ExcalidrawImageElement,
     forceNaturalSize = false,
   ) => {
-    const image =
-      isInitializedImageElement(imageElement) &&
-      this.imageCache.get(imageElement.fileId)?.image;
+    let image = null;
+    if (isInitializedImageElement(imageElement)) {
+      image =
+        this.fullImageCache.get(imageElement.fileId)?.image ||
+        this.imageCache.get(imageElement.fileId)?.image;
+    }
 
     if (!image || image instanceof Promise) {
       if (

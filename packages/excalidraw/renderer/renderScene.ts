@@ -962,11 +962,12 @@ const _renderStaticScene = ({
       );
     }
   });
-console.log(visibleElements,'visibleElements');
+// console.log(visibleElements,'visibleElements');
   // Paint visible elements
   visibleElements
     .filter((el) => !isIframeLikeOrItsLabel(el))
     .forEach((element) => {
+      console.log(element,'visibleElements-asdasdas');
       try {
         const frameId = element.frameId || appState.frameToHighlight?.id;
 
